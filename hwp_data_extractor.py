@@ -77,13 +77,19 @@ class Extractor:
         txt = remove_all_blank(txt)
         txt = get_array_between_chars(txt, '<', '>')
         sales = get_char_between_chars(txt[4], '<', '>')
-        return sales
+        return sales[:-1]
 
     def get_company_count_of_workers(self, txt):
         txt = remove_all_blank(txt)
         txt = get_array_between_chars(txt, '<', '>')
         sales = get_char_between_chars(txt[6], '<', '>')
-        return sales
+        return sales[:-1]
+
+    def get_company_description(self, txt):
+        txt = get_array_between_chars(txt, '<', '>')
+        description = get_char_between_chars(txt[2], '<', '>')
+        return description
+
 
 if __name__ == '__main__':
 
@@ -103,6 +109,7 @@ if __name__ == '__main__':
     company_setup_date = ext.get_company_company_setup_date(text[2])  # 설립일자
     company_annual_sales = ext.get_company_annual_sales(text[2])  # 연매출액
     company_count_of_workers = ext.get_company_count_of_workers(text[2])  # 근로자수
+    company_description = ext.get_company_description(text[3])  # 회사소개
 
     print(count_of_people)  # 모집인원
     print(company_name)  # 업체명
@@ -110,6 +117,7 @@ if __name__ == '__main__':
     print(company_setup_date)  # 설립일자
     print(company_annual_sales)  # 연매출액
     print(company_count_of_workers)  # 근로자수
+    print(company_description)  # 회사소개
 
     # 0. 모집인원
     # 1. 업체명, 연락처
@@ -118,6 +126,7 @@ if __name__ == '__main__':
     # 3. 회사소개
     # 4. 업무내용, 업종형태, 주력상품
     # 5. 주소
+
     # 6. 기업위치, 담당자 성명, 핸드폰, 버스노선, E-mail
     # 7. 자격요건 (자격증, 성적, 특기사항)
     # 8. 근무조건
