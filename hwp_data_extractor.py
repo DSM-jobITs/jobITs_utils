@@ -1,16 +1,22 @@
 import olefile
+import os
 import re
+from flask import Flask, request
+from werkzeug.utils import secure_filename
 
-FILE_PATH = './files/2020.hwp'
+UPLOAD_PATH = './files/'
 
-###############################
-# Text 에서 필요한 내용을 추출하기 위한 문자열을 자르고 나누고 값을 얻기 위한 깔끔한 코드를 완성해야 한다.
-# 확장성은 떨어질 수 밖에 없기에 정확성과 코드의 깔끔함을 최우선으로 생각해야 한다.
-###############################
+app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = UPLOAD_PATH
 
 
 def remove_first_line(string):
     return remove_line(string, 0, 1)
+
+
+def divide_string(string, char):
+    idx = string.find(char)
+    return string[:idx], string[idx+1:]
 
 
 def remove_all_blank(string):
@@ -129,13 +135,27 @@ class Extractor:
         stack = get_char_between_chars(txt[7], '<', '>')
         return stack
 
+    def get_working_time(self, i):
+        txt = get_array_between_chars(self.txt[i], '<', '>')
+        start, end = divide_string(remove_all_blank(txt[3]), '~')
+        start = get_char_between_chars(start, '<', '시')
+        end = get_char_between_chars(end, '', '시')
+        return start, end
 
-if __name__ == '__main__':
+    def get_working_date(self, i):
+        txt = get_array_between_chars(self.txt[i], '<', '>')
+        money = get_char_between_chars(txt[7], '(실습기간)', '(정식)')
+        return remove_all_blank(money)[:-1]
 
-    f = olefile.OleFileIO(FILE_PATH)  # HWP file 열기
+
+def init(file_path):
+
+    f = olefile.OleFileIO(file_path)  # HWP file 열기
 
     en_text = f.openstream('PrvText').read()  # text 꺼내기 (유니코드 상태임)
     de_text = en_text.decode('UTF-16')  # 유니코드를 UTF-16으로 디코딩한다. (utf-8 은 불가능)
+
+    f.close()
 
     ext = Extractor(de_text)
 
@@ -153,6 +173,8 @@ if __name__ == '__main__':
     certificate = ext.get_certificate(6)
     grade = ext.get_grade(7)
     stack = ext.get_stack(7)
+    start_time, end_time = ext.get_working_time(8)
+    money = ext.get_working_date(8)
 
     print(count_of_people)  # 모집인원
     print(company_name)  # 업체명
@@ -164,11 +186,29 @@ if __name__ == '__main__':
     print(business_information + ' / ' + business_type + ' / ' + main_product)  # 업무내용, 업종형태, 주력상품
     print(address)  # 주소
     print(certificate + ' / ' + grade + ' / ' + stack)  # 자격증, 성적, 특기사항
-    print()  # 근무시간, 급여, 실습기간
-    print()  # 구비서류, 면접희망, 근무희망
-    print()  # 접수일자, 마감일자
-    print(de_text)
+    print(start_time + ' / ' + end_time + ' / ', money)  # 근무시간, 실습기간 중 급여
+    # print()  # 구비서류, 면접희망, 근무희망
+    # print()  # 접수일자, 마감일자
+    # print(de_text)
+    return {
 
+    }
+
+
+@app.route('/extractor', methods=['POST'])
+def extractor():
+    file = request.files['file']
+    filename = secure_filename(file.filename)
+    _ = file.save(UPLOAD_PATH + filename)
+    file_path = f'{UPLOAD_PATH}{filename}'
+
+    json_data = init(file_path)
+    os.remove(file_path)
+    return json_data
+
+
+if __name__ == '__main__':
+    app.run()
     # 0. 모집인원
     # 1. 업체명, 연락처
     # 2. 설립일자, 연매출액, 근로자수
